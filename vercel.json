@@ -1,26 +1,9 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "pages/api/*.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "pages/index.vue",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
+    { "src": "src/main.js", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "src": "/api/(.*)", "dest": "/api/$1" }
   ]
 }
