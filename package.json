@@ -1,14 +1,16 @@
 {
-  "name": "wulintangimg",
+  "name": "my-vercel-project",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "vercel build"
+    "build": "vue-cli-service build",
+    "dev": "vercel dev"
   },
   "dependencies": {
     "vue": "^3.0.0"
   },
   "devDependencies": {
-    "@vercel/node": "^1.11.0"
+    "@vue/cli-service": "^4.5.0",
+    "@vercel/node": "^1.11.0",
+    "@vercel/static-build": "^0.10.0"
   }
 }
