@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node",
+      "config": { "includeFiles": ["pages/**/*", "utils/**/*"] }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/images",
+      "dest": "/pages/api/images.js"
+    },
+    {
+      "src": "/api/categories",
+      "dest": "/pages/api/categories.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/pages/index.js"
+    }
+  ],
+  "env": {
+    "LEANCLOUD_APP_ID": "@leancloud-app-id",
+    "LEANCLOUD_APP_KEY": "@leancloud-app-key"
+  }
+}
