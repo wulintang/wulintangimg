@@ -1,11 +1,14 @@
 import fetch from 'node-fetch';
+import fs from 'fs';
+import path from 'path';
+
+const cacheFilePath = '/tmp/recent_images_cache.json';
+const cacheSize = 50;  // 缓存最多保留的图片数量
 
 export default async function handler(req, res) {
   const action = req.query.action || 'list';
-  const cacheDir = '/tmp/img';
 
   if (action === 'list') {
-    // 获取分类列表
     const url = "http://cdn.apc.360.cn/index.php?c=WallPaper&a=getAllCategoriesV2&from=360chrome";
     try {
       const response = await fetch(url);
@@ -15,7 +18,6 @@ export default async function handler(req, res) {
       res.status(500).json({ error: 'Failed to fetch category list' });
     }
   } else if (action === 'get_images') {
-    // 获取某个分类下的图片
     const cid = req.query.cid || '';
     if (!cid) {
       return res.status(400).json({ error: 'No category ID provided' });
@@ -33,12 +35,33 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'No images found in the API response' });
       }
 
-      // 随机选择一张图片
-      const item = data.data[Math.floor(Math.random() * data.data.length)];
-      if (item.url) {
+      // 读取缓存文件，如果存在
+      let recentImages = [];
+      if (fs.existsSync(cacheFilePath)) {
+        recentImages = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
+      }
+
+      // 尝试随机选择一张不在缓存中的图片
+      let item;
+      for (let i = 0; i < data.data.length; i++) {
+        item = data.data[Math.floor(Math.random() * data.data.length)];
+        if (!recentImages.includes(item.url)) {
+          break;
+        }
+      }
+
+      if (item && item.url) {
         const imageResponse = await fetch(item.url);
         const imageData = await imageResponse.buffer();
         res.setHeader('Content-Type', 'image/jpeg');
+
+        // 更新缓存
+        recentImages.push(item.url);
+        if (recentImages.length > cacheSize) {
+          recentImages.shift();  // 超过缓存大小时，移除最早的一张图片
+        }
+        fs.writeFileSync(cacheFilePath, JSON.stringify(recentImages));
+
         return res.status(200).send(imageData);
       } else {
         return res.status(404).json({ error: 'No valid image URLs found' });
