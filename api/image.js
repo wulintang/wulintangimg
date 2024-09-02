@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     }
 
     const start = req.query.start || 0;
-    const count = req.query.count || 10;
+    const count = req.query.count || 10000;
     const url = `http://wallpaper.apc.360.cn/index.php?c=WallPaper&a=getAppsByCategory&cid=${cid}&start=${start}&count=${count}&from=360chrome`;
 
     try {
