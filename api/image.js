@@ -2,8 +2,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 
-const cacheFilePath = '/tmp/recent_images_cache.json';
-const cacheSize = 50;  // 缓存最多保留的图片数量
+const progressFilePath = '/tmp/image_progress.json';
 
 export default async function handler(req, res) {
   const action = req.query.action || 'list';
@@ -23,9 +22,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No category ID provided' });
     }
 
-    const start = req.query.start || 0;
-    const count = req.query.count || 20;
-    const url = `http://wallpaper.apc.360.cn/index.php?c=WallPaper&a=getAppsByCategory&cid=${cid}&start=${start}&count=${count}&from=360chrome`;
+    const url = `http://wallpaper.apc.360.cn/index.php?c=WallPaper&a=getAppsByCategory&cid=${cid}&start=0&count=100&from=360chrome`;
 
     try {
       const response = await fetch(url);
@@ -35,32 +32,24 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'No images found in the API response' });
       }
 
-      // 读取缓存文件，如果存在
-      let recentImages = [];
-      if (fs.existsSync(cacheFilePath)) {
-        recentImages = JSON.parse(fs.readFileSync(cacheFilePath, 'utf8'));
+      // 读取进度文件，如果存在
+      let progress = 0;
+      if (fs.existsSync(progressFilePath)) {
+        progress = JSON.parse(fs.readFileSync(progressFilePath, 'utf8')).progress || 0;
       }
 
-      // 尝试随机选择一张不在缓存中的图片
-      let item;
-      for (let i = 0; i < data.data.length; i++) {
-        item = data.data[Math.floor(Math.random() * data.data.length)];
-        if (!recentImages.includes(item.url)) {
-          break;
-        }
-      }
+      // 获取当前图片
+      const imageIndex = progress % data.data.length;
+      const item = data.data[imageIndex];
 
       if (item && item.url) {
         const imageResponse = await fetch(item.url);
         const imageData = await imageResponse.buffer();
         res.setHeader('Content-Type', 'image/jpeg');
 
-        // 更新缓存
-        recentImages.push(item.url);
-        if (recentImages.length > cacheSize) {
-          recentImages.shift();  // 超过缓存大小时，移除最早的一张图片
-        }
-        fs.writeFileSync(cacheFilePath, JSON.stringify(recentImages));
+        // 更新进度
+        progress += 1;
+        fs.writeFileSync(progressFilePath, JSON.stringify({ progress }));
 
         return res.status(200).send(imageData);
       } else {
