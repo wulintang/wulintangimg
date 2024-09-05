@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
+import sharp from 'sharp'; // 引入 sharp
 import path from 'path';
 
 const progressFilePath = '/tmp/image_progress.json';
@@ -43,15 +44,21 @@ export default async function handler(req, res) {
       const item = data.data[imageIndex];
 
       if (item && item.url) {
+        // 获取图片数据
         const imageResponse = await fetch(item.url);
-        const imageData = await imageResponse.buffer();
-        res.setHeader('Content-Type', 'image/jpeg');
+        const imageBuffer = await imageResponse.buffer();
+
+        // 转换为 WebP 格式
+        const webpBuffer = await sharp(imageBuffer)
+          .webp({ quality: 80 }) // 你可以根据需要调整质量
+          .toBuffer();
+
+        res.setHeader('Content-Type', 'image/webp');
+        res.status(200).send(webpBuffer);
 
         // 更新进度
         progress += 1;
         fs.writeFileSync(progressFilePath, JSON.stringify({ progress }));
-
-        return res.status(200).send(imageData);
       } else {
         return res.status(404).json({ error: 'No valid image URLs found' });
       }
