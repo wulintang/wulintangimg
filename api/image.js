@@ -48,30 +48,37 @@ export default async function handler(req, res) {
             return res.status(404).json({ error: 'No images found in the API response' });
         }
 
-        const webpImages = [];
-        for (const item of allImages) {
-            if (item && item.url) {
-                try {
-                    const imageResponse = await fetch(item.url);
-                    const imageBuffer = await imageResponse.buffer();
-                    const webpBuffer = await sharp(imageBuffer)
-                       .webp({ quality: 80 })
-                       .toBuffer();
-                    webpImages.push(webpBuffer);
-                } catch (error) {
-                    console.error(`Failed to convert image: ${error.message}`);
-                }
-            }
+        // 读取进度文件，如果存在
+        let progress = 0;
+        if (fs.existsSync(progressFilePath)) {
+            progress = JSON.parse(fs.readFileSync(progressFilePath, 'utf8')).progress || 0;
         }
 
-        if (webpImages.length === 0) {
+        // 获取当前图片
+        const imageIndex = progress % allImages.length;
+        const item = allImages[imageIndex];
+
+        if (item && item.url) {
+            // 获取图片数据
+            const imageResponse = await fetch(item.url);
+            const imageBuffer = await imageResponse.buffer();
+
+            // 转换为 WebP 格式
+            const webpBuffer = await sharp(imageBuffer)
+               .webp({ quality: 80 })
+               .toBuffer();
+
+            res.setHeader('Content-Type', 'image/webp');
+            res.status(200).send(webpBuffer);
+
+            // 更新进度
+            progress += 1;
+            fs.writeFileSync(progressFilePath, JSON.stringify({ progress }));
+        } else {
             return res.status(404).json({ error: 'No valid image URLs found' });
         }
-
-        // 这里可以根据需求调整返回方式，例如返回图片数组或者打包成 zip 文件等
-        res.setHeader('Content-Type', 'application/json');
-        res.status(200).json({ images: webpImages.map(buffer => buffer.toString('base64')) });
     } else {
         res.status(400).json({ error: 'Invalid action' });
     }
 }
+    
